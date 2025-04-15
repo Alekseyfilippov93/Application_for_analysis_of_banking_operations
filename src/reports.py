@@ -24,12 +24,7 @@ def report_to_file(filename: Optional[str] = None):
             try:
                 if isinstance(result, pd.DataFrame):
                     # Сохраняем только нужные колонки
-                    result.to_json(
-                        file_to_save,
-                        orient="records",
-                        indent=4,
-                        force_ascii=False
-                    )
+                    result.to_json(file_to_save, orient="records", indent=4, force_ascii=False)
                 else:
                     with open(file_to_save, "w", encoding="utf-8") as f:
                         json.dump(result, f, indent=4, ensure_ascii=False)
@@ -45,11 +40,7 @@ def report_to_file(filename: Optional[str] = None):
 
 
 @report_to_file("../data/Траты_по_категориям.json")
-def spending_by_category(
-        transactions: pd.DataFrame,
-        category: str,
-        date: Optional[str] = None
-) -> pd.DataFrame:
+def spending_by_category(transactions: pd.DataFrame, category: str, date: Optional[str] = None) -> pd.DataFrame:
     """
     Фильтрует траты по категории за последние 3 месяца.
     Возвращает DataFrame с колонками:
@@ -67,59 +58,20 @@ def spending_by_category(
     three_months_ago = target_date - timedelta(days=90)
 
     # Конвертация дат в DataFrame
-    transactions["Дата операции"] = pd.to_datetime(
-        transactions["Дата операции"],
-        dayfirst=True,
-        errors="coerce"
-    )
+    transactions["Дата операции"] = pd.to_datetime(transactions["Дата операции"], dayfirst=True, errors="coerce")
 
     # Фильтрация
     mask = (
-            (transactions["Категория"] == category) &
-            (transactions["Дата операции"] >= three_months_ago) &
-            (transactions["Дата операции"] <= target_date) &
-            (transactions["Сумма операции"] < 0)  # Только траты (отрицательные значения)
+        (transactions["Категория"] == category)
+        & (transactions["Дата операции"] >= three_months_ago)
+        & (transactions["Дата операции"] <= target_date)
+        & (transactions["Сумма операции"] < 0)  # Только траты (отрицательные значения)
     )
 
     # Выбираем нужные колонки
-    result = transactions.loc[mask, [
-        "Дата операции",
-        "Категория",
-        "Сумма операции",
-        "Описание"
-    ]].copy()
+    result = transactions.loc[mask, ["Дата операции", "Категория", "Сумма операции", "Описание"]].copy()
 
     # Конвертируем сумму в абсолютные значения
     result["Сумма операции"] = result["Сумма операции"].abs()
 
     return result.sort_values("Дата операции", ascending=False)
-
-
-if __name__ == "__main__":
-    try:
-        PATH_TO_FILE = Path(__file__).parent.parent / "data" / "operations.xlsx"
-        print(f"Проверка пути: {PATH_TO_FILE.exists()} | {PATH_TO_FILE}")
-
-        transactions = pd.read_excel(
-            PATH_TO_FILE,
-            engine="openpyxl",
-            dtype={"Категория": "category"}
-        )
-
-        # Диагностика
-        print("\n=== Диагностика данных ===")
-        print(f"Всего записей: {len(transactions)}")
-        print("Колонки:", transactions.columns.tolist())
-        print("Пример данных:\n", transactions.head(2))
-        print("\nУникальные категории:", transactions["Категория"].unique())
-        print("Диапазон сумм:", transactions["Сумма операции"].min(), "-", transactions["Сумма операции"].max())
-
-        # Обработка
-        result = spending_by_category(transactions, "Супермаркеты")
-
-        print("\n=== Результат ===")
-        print(f"Найдено записей: {len(result)}")
-        print(result)
-
-    except Exception as e:
-        logger.exception("Ошибка:")

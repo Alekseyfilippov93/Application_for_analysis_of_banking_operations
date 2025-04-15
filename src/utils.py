@@ -4,11 +4,12 @@ from pathlib import Path
 
 PATH_TO_FILE = Path(__file__).parent.parent / "data" / "operations.xlsx"
 
+
 def get_time_for_greeting():
-    '''
+    """
     Функция принимает в формате YYYY-MM-DD HH:MM:SS и возвращает приветствие, например, 'Добрый день,
     в зависимости от времени суток
-    '''
+    """
     user_datetime = datetime.now()
     hour = user_datetime.hour
     if 5 <= hour < 12:
