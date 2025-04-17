@@ -55,7 +55,7 @@ def spending_by_category(transactions: pd.DataFrame, category: str, date: Option
 
     # Обработка дат
     target_date = pd.to_datetime(date, dayfirst=True) if date else datetime.now()
-    three_months_ago = target_date - timedelta(days=90)
+    three_months_ago = target_date - pd.DateOffset(months=3)
 
     # Конвертация дат в DataFrame
     transactions["Дата операции"] = pd.to_datetime(transactions["Дата операции"], dayfirst=True, errors="coerce")
