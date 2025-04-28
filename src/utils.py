@@ -2,7 +2,7 @@ from datetime import datetime
 from pathlib import Path
 import json
 import os
-from typing import List, Any
+from typing import List, Any, Dict, Union
 import pandas as pd
 from dotenv import load_dotenv
 import yfinance as yf
@@ -11,6 +11,9 @@ import requests
 load_dotenv()
 
 PATH_TO_FILE = Path(__file__).parent.parent / "data" / "operations.xlsx"
+
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+file_json = os.path.join(project_root, "user_settings.json")
 
 
 def get_time_for_greeting():
@@ -63,7 +66,7 @@ def main(date):
 
 def calculate_total_expenses(df, card_number=None, category=None, cashback=False):
     """
-    Считает общую сумму расходов из Excel-файла.
+        Считает общую сумму расходов из Excel-файла.
     """
     # Загружаем Excel-файл
     df = pd.read_excel(PATH_TO_FILE)
@@ -97,27 +100,95 @@ def top_transactions_5(df: List[dict]) -> List[dict]:
 API_KEY = os.getenv("API_KEY")
 
 
-def get_cur_rate(currency: str) -> Any:
+def get_cur_rate(currencies: list) -> Dict[str, float]:
     """Функция для получения курса валют."""
-    url = f"https://api.apilayer.com/exchangerates_data/latest?symbols=RUB&base={currency}"
-    response = requests.get(url, headers={"apikey": API_KEY}, timeout=40)
-    response_data = json.loads(response.text)
-    return response_data["rates"]["RUB"]
+    rates = {}
+    for currency in currencies:
+        url = f"https://api.apilayer.com/exchangerates_data/latest?symbols=RUB&base={currency}"
+        response = requests.get(url, headers={"apikey": API_KEY}, timeout=40)
+        rates[currency] = response.json()["rates"]["RUB"]
+    return rates
 
 
-def get_stock_prices(symbols=["AAPL", "AMZN", "GOOG", "MSFT", "TSLA"]):
+if __name__ == "__main__":
+    # Чтение user_settings.json и проверка отработки функции
+    with open(file_json, "r", encoding="utf-8") as f:
+        currencies = json.load(f)["user_currencies"]
+
+    print(get_cur_rate(currencies))
+
+
+# def get_stock_prices(symbols=["AAPL", "AMZN", "GOOG", "MSFT", "TSLA"]):
+#     """
+#     Получает текущие цены акций через Yahoo Finance
+#     """
+#     try:
+#         data = yf.download(tickers=" ".join(symbols), period="1d", group_by="ticker", progress=False)
+#
+#         return {
+#             "stock_prices": [
+#                 {"stock": symbol, "price": round(float(data[symbol]["Close"][-1]), 2)}
+#                 for symbol in symbols
+#                 if symbol in data and not data[symbol]["Close"].empty
+#             ]
+#         }
+#     except Exception:
+#         return {"stock_prices": []}
+
+
+def get_stock_prices() -> List[Dict[str, Union[str, float]]]:
     """
-    Получает текущие цены акций через Yahoo Finance
+    Получает текущие цены акций из user_settings.json через Yahoo Finance.
+    Возвращает список словарей вида {"stock": "AAPL", "price": 170.12}.
     """
+    # Загружаем тикеры из файла
+    with open(file_json, "r", encoding="utf-8") as f:
+        symbols = json.load(f).get("user_stocks", [])  # Получаем список акций
+
+    if not symbols:
+        return []
+
     try:
-        data = yf.download(tickers=" ".join(symbols), period="1d", group_by="ticker", progress=False)
+        # Загружаем данные акций
+        data = yf.download(
+            tickers=" ".join(symbols),
+            period="1d",
+            group_by="ticker",
+            progress=False
+        )
 
-        return {
-            "stock_prices": [
-                {"stock": symbol, "price": round(float(data[symbol]["Close"][-1]), 2)}
-                for symbol in symbols
-                if symbol in data and not data[symbol]["Close"].empty
-            ]
-        }
-    except Exception:
-        return {"stock_prices": []}
+        # Формируем результат
+        return [
+            {"stock": symbol, "price": round(float(data[symbol]["Close"][-1]), 2)}
+            for symbol in symbols
+            if symbol in data and not data[symbol]["Close"].empty
+        ]
+    except Exception as e:
+        print(f"Ошибка при получении данных акций: {e}")
+        return []
+
+
+# Пример использования
+if __name__ == "__main__":
+    stocks = get_stock_prices()
+    print(stocks)  # Вывод: [{"stock": "AAPL", "price": 170.12}, ...]
+
+def convert_timestamps_to_strings(dataframe):
+    """Преобразует все столбцы с типом 'datetime64[ns]' в строки."""
+    for col in dataframe.select_dtypes(include=["datetime64[ns]"]).columns:
+        dataframe[col] = dataframe[col].dt.strftime("%Y-%m-%d %H:%M:%S")
+    return dataframe
+
+
+def filter_date_operations(operations: pd.DataFrame, date: str) -> list:
+    """Возвращает операции за текущий месяц"""
+    first_day_moth = datetime.strptime(date, "%Y-%m-%d %H:%M:%S").replace(
+        day=1, hour=00, minute=00, second=00
+    )
+    operations["Дата операции"] = pd.to_datetime(
+        operations["Дата операции"], format="%d.%m.%Y %H:%M:%S"
+    )
+    return operations[
+        (operations["Дата операции"] >= first_day_moth)
+        & (operations["Дата операции"] <= datetime.strptime(date, "%Y-%m-%d %H:%M:%S"))
+        ]

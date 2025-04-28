@@ -1,17 +1,28 @@
+import json
+
+import pandas as pd
+
 from src.utils import (
     get_time_for_greeting,
     calculate_total_expenses,
     top_transactions_5,
     get_cur_rate,
     get_stock_prices,
+    convert_timestamps_to_strings,
+    filter_date_operations,
 )
 
 
-def get_main_page(date_str):
-    return {
-        "greeting": get_time_for_greeting(date_str),
-        "cards": calculate_total_expenses(),
-        "top_transactions": top_transactions_5(),
+def get_main_page(date: str):
+    """Возвращает JSON для главной Веб-страницы"""
+    periodic_df = pd.read_excel("../data/operations.xlsx")
+    periodic_df = filter_date_operations(periodic_df, date)
+    periodic_df = convert_timestamps_to_strings(periodic_df)
+    result = {
+        "greeting": get_time_for_greeting(),
+        "cards": calculate_total_expenses(periodic_df),
+        "top_transactions": top_transactions_5(periodic_df),
         "currency_rates": get_cur_rate(),
         "stock_prices": get_stock_prices(),
     }
+    return json.dumps(result, ensure_ascii=False)
