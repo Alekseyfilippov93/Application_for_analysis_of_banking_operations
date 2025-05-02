@@ -118,24 +118,6 @@ if __name__ == "__main__":
     print(get_cur_rate(currencies))
 
 
-# def get_stock_prices(symbols=["AAPL", "AMZN", "GOOG", "MSFT", "TSLA"]):
-#     """
-#     Получает текущие цены акций через Yahoo Finance
-#     """
-#     try:
-#         data = yf.download(tickers=" ".join(symbols), period="1d", group_by="ticker", progress=False)
-#
-#         return {
-#             "stock_prices": [
-#                 {"stock": symbol, "price": round(float(data[symbol]["Close"][-1]), 2)}
-#                 for symbol in symbols
-#                 if symbol in data and not data[symbol]["Close"].empty
-#             ]
-#         }
-#     except Exception:
-#         return {"stock_prices": []}
-
-
 def get_stock_prices() -> List[Dict[str, Union[str, float]]]:
     """
     Получает текущие цены акций из user_settings.json через Yahoo Finance.
@@ -172,6 +154,7 @@ def get_stock_prices() -> List[Dict[str, Union[str, float]]]:
 if __name__ == "__main__":
     stocks = get_stock_prices()
     print(stocks)  # Вывод: [{"stock": "AAPL", "price": 170.12}, ...]
+
 
 def convert_timestamps_to_strings(dataframe):
     """Преобразует все столбцы с типом 'datetime64[ns]' в строки."""
