@@ -6,7 +6,7 @@ from src.services import analyze_cashback
 from src.reports import spending_by_category
 import os
 
-DATA_FILE = os.path.join(PATH_HOME, "data_file", "operations.xlsx")
+DATA_FILE = os.path.join(PATH_HOME, "data", "operations.xlsx")
 
 
 def main():
@@ -25,3 +25,7 @@ def main():
     # Вызов функции отчёта
     report_result = spending_by_category(all_transactions_df, "Фастфуд", "17.12.2021")
     print(report_result)
+
+
+if __name__ == '__main__':
+    main()

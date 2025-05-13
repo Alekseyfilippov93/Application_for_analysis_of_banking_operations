@@ -7,6 +7,7 @@ import pandas as pd
 from dotenv import load_dotenv
 import yfinance as yf
 import requests
+from pandas import DataFrame
 
 load_dotenv()
 
@@ -68,9 +69,6 @@ def calculate_total_expenses(df, card_number=None, category=None, cashback=False
     """
         Считает общую сумму расходов из Excel-файла.
     """
-    # Загружаем Excel-файл
-    df = pd.read_excel(PATH_TO_FILE)
-
     # Фильтр: оставляем только завершённые операции ("OK") и отрицательные суммы (расходы)
     df_expenses = df[(df["Статус"] == "OK") & (df["Сумма операции"] < 0)].copy()
 
@@ -87,14 +85,24 @@ def calculate_total_expenses(df, card_number=None, category=None, cashback=False
     if cashback:
         total_cashback = df_expenses["Бонусы (включая кэшбэк)"].sum()
         net_expenses = total_expenses - total_cashback
-        return round(net_expenses, 2)
+        result = round(net_expenses, 2)
+        return result
 
 
-def top_transactions_5(df: List[dict]) -> List[dict]:
+def top_transactions_5(df: DataFrame) -> List[dict]:
     """Функция возвращает топ 5 транзакций"""
-    df = pd.read_excel(PATH_TO_FILE)
-    df.sort(key=lambda x: x["Сумма операции"], reverse=True)
-    return df[:5]
+    sorted_df = df.sort_values("Сумма платежа", axis=0, ascending=False)
+    result = [
+        {
+            "date": row['Дата платежа'],
+            "category": row['Категория'],
+            "amount": row['Сумма платежа'],
+            "description": row['Описание'],
+        }
+        for _, row in sorted_df[:5].iterrows()
+    ]
+    print(result)
+    return result
 
 
 API_KEY = os.getenv("API_KEY")
