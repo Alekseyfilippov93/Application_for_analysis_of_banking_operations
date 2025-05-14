@@ -6,11 +6,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 
 # Настройка логирования
-logging.basicConfig(
-    filename='app.log',
-    level=logging.DEBUG,
-    format='%(asctime)s - %(levelname)s - %(message)s'
-)
+logging.basicConfig(filename="app.log", level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
 PATH_TO_FILE = Path(__file__).parent.parent / "data" / "operations.xlsx"
@@ -83,11 +79,7 @@ def spending_by_category(transactions: pd.DataFrame, category: str, date: Option
 
     # Конвертация дат в DataFrame
     try:
-        transactions["Дата операции"] = pd.to_datetime(
-            transactions["Дата операции"],
-            dayfirst=True,
-            errors="coerce"
-        )
+        transactions["Дата операции"] = pd.to_datetime(transactions["Дата операции"], dayfirst=True, errors="coerce")
         logger.debug("Конвертация дат выполнена успешно")
     except Exception as e:
         logger.error(f"Ошибка конвертации дат: {str(e)}")
@@ -96,10 +88,10 @@ def spending_by_category(transactions: pd.DataFrame, category: str, date: Option
     # Фильтрация
     try:
         mask = (
-                (transactions["Категория"] == category)
-                & (transactions["Дата операции"] >= three_months_ago)
-                & (transactions["Дата операции"] <= target_date)
-                & (transactions["Сумма операции"] < 0)  # Только траты (отрицательные значения)
+            (transactions["Категория"] == category)
+            & (transactions["Дата операции"] >= three_months_ago)
+            & (transactions["Дата операции"] <= target_date)
+            & (transactions["Сумма операции"] < 0)  # Только траты (отрицательные значения)
         )
 
         filtered_count = mask.sum()

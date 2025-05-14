@@ -11,11 +11,7 @@ import requests
 from pandas import DataFrame
 
 # Настройка логирования
-logging.basicConfig(
-    filename='app.log',
-    level=logging.DEBUG,
-    format='%(asctime)s - %(levelname)s - %(message)s'
-)
+logging.basicConfig(filename="app.log", level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
 load_dotenv()
@@ -95,11 +91,13 @@ def main(date):
 
 def calculate_total_expenses(df, card_number=None, category=None, cashback=False):
     """
-        Считает общую сумму расходов из Excel-файла.
+    Считает общую сумму расходов из Excel-файла.
     """
     try:
-        logger.info(f"Начало расчета расходов. Параметры: card_number={card_number}, "
-                    f"category={category}, cashback={cashback}")
+        logger.info(
+            f"Начало расчета расходов. Параметры: card_number={card_number}, "
+            f"category={category}, cashback={cashback}"
+        )
 
         # Фильтр: оставляем только завершённые операции ("OK") и отрицательные суммы (расходы)
         df_expenses = df[(df["Статус"] == "OK") & (df["Сумма операции"] < 0)].copy()
@@ -123,8 +121,9 @@ def calculate_total_expenses(df, card_number=None, category=None, cashback=False
             total_cashback = df_expenses["Бонусы (включая кэшбэк)"].sum()
             net_expenses = total_expenses - total_cashback
             result = round(net_expenses, 2)
-            logger.info(f"Учет кэшбэка. Сумма кэшбэка: {total_cashback:.2f}, "
-                        f"Итоговая сумма с учетом кэшбэка: {result:.2f}")
+            logger.info(
+                f"Учет кэшбэка. Сумма кэшбэка: {total_cashback:.2f}, " f"Итоговая сумма с учетом кэшбэка: {result:.2f}"
+            )
             return result
 
         logger.info(f"Возвращаемая сумма расходов: {round(total_expenses, 2):.2f}")
@@ -146,10 +145,10 @@ def top_transactions_5(df: DataFrame) -> List[dict]:
 
         result = [
             {
-                "date": row['Дата платежа'],
-                "category": row['Категория'],
-                "amount": row['Сумма платежа'],
-                "description": row['Описание'],
+                "date": row["Дата платежа"],
+                "category": row["Категория"],
+                "amount": row["Сумма платежа"],
+                "description": row["Описание"],
             }
             for _, row in sorted_df[:5].iterrows()
         ]
@@ -220,12 +219,7 @@ def get_stock_prices() -> List[Dict[str, Union[str, float]]]:
             return []
 
         # Загружаем данные акций
-        data = yf.download(
-            tickers=" ".join(symbols),
-            period="1d",
-            group_by="ticker",
-            progress=False
-        )
+        data = yf.download(tickers=" ".join(symbols), period="1d", group_by="ticker", progress=False)
         logger.info("Данные акций успешно загружены с Yahoo Finance")
 
         # Формируем результат
@@ -258,12 +252,8 @@ def convert_timestamps_to_strings(dataframe):
 
 def filter_date_operations(operations: pd.DataFrame, date: str) -> list:
     """Возвращает операции за текущий месяц"""
-    first_day_moth = datetime.strptime(date, "%Y-%m-%d %H:%M:%S").replace(
-        day=1, hour=00, minute=00, second=00
-    )
-    operations["Дата операции"] = pd.to_datetime(
-        operations["Дата операции"], format="%d.%m.%Y %H:%M:%S"
-    )
+    first_day_moth = datetime.strptime(date, "%Y-%m-%d %H:%M:%S").replace(day=1, hour=00, minute=00, second=00)
+    operations["Дата операции"] = pd.to_datetime(operations["Дата операции"], format="%d.%m.%Y %H:%M:%S")
     return operations[
         (operations["Дата операции"] >= first_day_moth)
         & (operations["Дата операции"] <= datetime.strptime(date, "%Y-%m-%d %H:%M:%S"))

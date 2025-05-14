@@ -27,5 +27,5 @@ def main():
     print(report_result)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
