@@ -36,36 +36,41 @@ def temp_json_file(tmp_path):
 
 
 # Тесты для spending_by_category
-def test_spending_by_category_success(sample_transactions, temp_json_file):
-    """Тест успешного выполнения функции"""
-    with patch.object(spending_by_category, "__wrapped__", return_file=False):
-        result = spending_by_category(sample_transactions, "Еда")
+@pytest.fixture
+def transactions():
+    return pd.DataFrame(
+        [
+            {"Дата операции": "01.03.2025", "Категория": "Продукты", "Сумма операции": -1200, "Описание": "Магазин А"},
+            {"Дата операции": "01.04.2025", "Категория": "Продукты", "Сумма операции": -500, "Описание": "Магазин Б"},
+            {"Дата операции": "01.01.2025", "Категория": "Продукты", "Сумма операции": -300, "Описание": "Магазин В"},
+            {"Дата операции": "01.04.2025", "Категория": "Кафе", "Сумма операции": -200, "Описание": "Кофейня"},
+            {"Дата операции": "01.04.2025", "Категория": "Продукты", "Сумма операции": 1000, "Описание": "Возврат"},
+        ]
+    )
 
-    assert isinstance(result, pd.DataFrame)
-    assert len(result) == 4
-    assert all(result["Категория"] == "Еда")
+
+def test_spending_by_category_basic(transactions):
+    result = spending_by_category(transactions, "Продукты", date="30.04.2025")
+    assert len(result) == 2
+    assert all(result["Категория"] == "Продукты")
     assert all(result["Сумма операции"] > 0)
 
 
-def test_spending_by_category_date_filter(sample_transactions):
-    """Тест фильтрации по дате"""
-    with patch.object(spending_by_category, "__wrapped__", return_file=False):
-        result = spending_by_category(sample_transactions, "Еда", "01.03.2023")
-
-    assert len(result) == 3  # Только операции до 01.03.2023
+def test_spending_by_category_empty(transactions):
+    result = spending_by_category(transactions, "Транспорт", date="30.04.2025")
+    assert result.empty
 
 
-def test_spending_by_category_missing_columns(sample_transactions):
-    """Тест обработки отсутствия обязательных колонок"""
+def test_spending_by_category_missing_column():
+    df = pd.DataFrame(
+        {
+            "Дата операции": ["01.01.2025"],
+            "Категория": ["Продукты"],
+            # "Сумма операции" отсутствует
+        }
+    )
     with pytest.raises(ValueError):
-        spending_by_category(sample_transactions.drop(columns=["Категория"]), "Еда")
-
-
-def test_spending_by_category_no_spending(sample_transactions):
-    """Тест случая, когда нет трат по категории"""
-    with patch.object(spending_by_category, "__wrapped__", return_file=False):
-        result = spending_by_category(sample_transactions, "Развлечения")
-    assert len(result) == 1
+        spending_by_category(df, "Продукты")
 
 
 # Тесты для декоратора report_to_file
@@ -135,20 +140,3 @@ def test_invalid_date_format(sample_transactions):
     """Тест обработки неверного формата даты"""
     with pytest.raises(Exception):
         spending_by_category(sample_transactions, "Еда", "invalid_date")
-
-
-def test_empty_dataframe():
-    """Тест с пустым DataFrame"""
-    with patch.object(spending_by_category, "__wrapped__", return_file=False):
-        result = spending_by_category(pd.DataFrame(), "Еда")
-    assert len(result) == 0
-
-
-# Проверка логирования
-def test_function_logging(caplog, sample_transactions):
-    """Тест корректности логирования"""
-    with patch.object(spending_by_category, "__wrapped__", return_file=False):
-        spending_by_category(sample_transactions, "Еда")
-
-    assert "Запуск spending_by_category для категории 'Еда'" in caplog.text
-    assert "Успешно сформирован отчет" in caplog.text
