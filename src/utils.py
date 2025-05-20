@@ -89,48 +89,48 @@ def main(date):
         return {}
 
 
-def calculate_total_expenses(df, card_number=None, category=None, cashback=False):
+def calculate_expenses_by_cards(df, cashback=False):
     """
-    Считает общую сумму расходов из Excel-файла.
+    Группирует расходы по картам и возвращает список словарей с тратами и кэшбэком.
     """
     try:
-        logger.info(
-            f"Начало расчета расходов. Параметры: card_number={card_number}, "
-            f"category={category}, cashback={cashback}"
-        )
+        logger.info(f"Начало расчета расходов по картам. Учет кэшбэка: {cashback}")
 
-        # Фильтр: оставляем только завершённые операции ("OK") и отрицательные суммы (расходы)
+        # Базовая фильтрация
         df_expenses = df[(df["Статус"] == "OK") & (df["Сумма операции"] < 0)].copy()
-        logger.debug(f"Найдено {len(df_expenses)} операций расходов после базовой фильтрации")
+        logger.debug(f"После базовой фильтрации найдено {len(df_expenses)} записей")
 
-        # Если указан номер карты, фильтруем по нему
-        if card_number:
-            df_expenses = df_expenses[df_expenses["Номер карты"] == card_number]
-            logger.debug(f"После фильтрации по карте {card_number} осталось {len(df_expenses)} операций")
+        # Исключаем транзакции без номера карты
+        df_expenses = df_expenses[df_expenses["Номер карты"].notna()]
+        if df_expenses.empty:
+            logger.info("Нет транзакций с указанными картами. Возвращается пустой список.")
+            return []
 
-        if category:
-            df_expenses = df_expenses[df_expenses["Категория"] == category]
-            logger.debug(f"После фильтрации по категории '{category}' осталось {len(df_expenses)} операций")
+        # Приведение номера карты к строке
+        df_expenses["Номер карты"] = df_expenses["Номер карты"].astype(str)
 
-        # Сумма расходов (без кэшбэка)
-        total_expenses = df_expenses["Сумма операции"].abs().sum()
-        logger.info(f"Общая сумма расходов (без кэшбэка): {total_expenses:.2f}")
+        grouped = df_expenses.groupby("Номер карты")
 
-        # Если нужно учесть кэшбэк
-        if cashback:
-            total_cashback = df_expenses["Бонусы (включая кэшбэк)"].sum()
-            net_expenses = total_expenses - total_cashback
-            result = round(net_expenses, 2)
-            logger.info(
-                f"Учет кэшбэка. Сумма кэшбэка: {total_cashback:.2f}, " f"Итоговая сумма с учетом кэшбэка: {result:.2f}"
+        result = []
+        for card_number, group in grouped:
+            total_spent = group["Сумма операции"].abs().sum()
+            total_cashback = group["Бонусы (включая кэшбэк)"].fillna(0).sum() if cashback else 0.0
+
+            result.append(
+                {
+                    "last_digits": card_number,
+                    "total_spent": round(total_spent, 2),
+                    "cashback": round(total_cashback, 2),
+                }
             )
-            return result
 
-        logger.info(f"Возвращаемая сумма расходов: {round(total_expenses, 2):.2f}")
-        return round(total_expenses, 2)
+            logger.debug(f"Карта {card_number}: потрачено {total_spent:.2f}, кэшбэк {total_cashback:.2f}")
+
+        logger.info(f"Группировка завершена. Найдено карт: {len(result)}")
+        return result
 
     except Exception as e:
-        logger.error(f"Ошибка при расчете расходов: {str(e)}", exc_info=True)
+        logger.error(f"Ошибка при расчете расходов по картам: {str(e)}", exc_info=True)
         raise
 
 
@@ -257,4 +257,4 @@ def filter_date_operations(operations: pd.DataFrame, date: str) -> list:
     return operations[
         (operations["Дата операции"] >= first_day_moth)
         & (operations["Дата операции"] <= datetime.strptime(date, "%Y-%m-%d %H:%M:%S"))
-        ]
+    ]

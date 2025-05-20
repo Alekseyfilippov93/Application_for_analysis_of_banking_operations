@@ -5,10 +5,10 @@ import pandas as pd
 
 from src.utils import (
     get_time_for_greeting,
-    calculate_total_expenses,
     top_transactions_5,
     get_cur_rate,
     get_stock_prices,
+    calculate_expenses_by_cards,
     convert_timestamps_to_strings,
     filter_date_operations,
 )
@@ -25,7 +25,7 @@ def get_main_page(date: str):
         currencies = json.load(f)["user_currencies"]
     result = {
         "greeting": get_time_for_greeting(),
-        "cards": calculate_total_expenses(periodic_df),
+        "cards": calculate_expenses_by_cards(periodic_df),
         "top_transactions": top_transactions_5(periodic_df),
         "currency_rates": get_cur_rate(currencies),
         "stock_prices": get_stock_prices(),
