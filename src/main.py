@@ -24,5 +24,3 @@ def main():
 
     # Вызов функции отчёта
     report_result = spending_by_category(all_transactions_df, "Фастфуд", "17.12.2021")
-    print(report_result)
-
